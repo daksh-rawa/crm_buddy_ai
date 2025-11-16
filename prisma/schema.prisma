@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CustomerStatus {
+  new
+  active
+  won
+  lost
+}
+
+enum InteractionType {
+  call
+  email
+  sms
+  meeting
+  note
+}
+
+enum TaskStatus {
+  pending
+  in_progress
+  completed
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customers Customer[]
+}
+
+model Customer {
+  id        String         @id @default(uuid())
+  name      String
+  email     String         @unique
+  phone     String?
+  source    String? // landing page, referral, ad, etc.
+  status    CustomerStatus @default(new) // new, active, won, lost
+  ownerId   String
+  owner     User           @relation(fields: [ownerId], references: [id])
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  interactions Interaction[]
+  tasks        Task[]
+}
+
+model Interaction {
+  id         String          @id @default(uuid())
+  type       InteractionType // call, email, sms, meeting, note
+  content    String?
+  customerId String          @map("customer_id")
+  customer   Customer        @relation(fields: [customerId], references: [id])
+  createdAt  DateTime        @default(now())
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  title       String     @default("New Task")
+  description String?
+  dueDate     DateTime?
+  status      TaskStatus @default(pending)
+  customerId  String
+  customer    Customer   @relation(fields: [customerId], references: [id])
+  createdAt   DateTime   @default(now())
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+}
